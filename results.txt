@@ -1,0 +1,6 @@
+UPDATE posts SET title = 'title 4',description = 'description 4',user_id = 5 WHERE id = 4;
+UPDATE users SET name = 'Edited Second User',email = 'second@secund.com' WHERE id = 2;
+INSERT INTO posts(id,title,description,user_id) VALUES (7,'new title','new description',1);
+INSERT INTO users(id,name,email) VALUES (5,'New User','new@new.com');
+DELETE FROM posts WHERE id = 3;
+DELETE FROM users WHERE id = 4;
