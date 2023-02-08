@@ -2,7 +2,11 @@ const backupTabels = getTable('backup.sql');
 const currentTabels = getTable('current.sql');
 const changes = compareTables(backupTabels, currentTabels);
 
-printChanegs(changes.edited, changes.news, changes.deleted);
+if(changes === null) {
+    printResults('');
+} else {
+    printChanegs(changes.edited, changes.news, changes.deleted);
+}
 
 function getTable(file) {
     const fs = require('fs');
@@ -110,9 +114,12 @@ function printChanegs(edited, news, deleted) {
     let content = getEditedQuerys(edited);
     content += getNewQuerys(news);
     content += getDeleteQuerys(deleted);
-    
+    printResults(content);
+}
+
+function printResults(reslts) {
     const fs = require('fs');
-    fs.writeFile('results.txt', content, err => {
+    fs.writeFile('results.txt', reslts, err => {
         if (err) {
             console.error(err);
         }
