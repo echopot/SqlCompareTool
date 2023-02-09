@@ -1,12 +1,16 @@
-let backupTabels = {};
-let currentTabels = {};
+let backupFile = '';
+let currentFile = '';
+let filterForTables = [];
 
 process.argv.forEach(function (val, idx, array) {
-    if(idx === 2) backupTabels = getTable(val.split(',')[0]);
-    if(idx === 3) currentTabels = getTable(val.split(',')[0]);
+    if(idx === 2) backupFile = val;
+    if(idx === 3) currentFile = val;
+    if(idx > 3) {
+        filterForTables.push(val)
+    }
 });
 
-const changes = compareTables(backupTabels, currentTabels);
+const changes = compareTables(getTable(backupFile, filterForTables), getTable(currentFile, filterForTables));
 
 if(changes === null) {
     printResults('');
@@ -14,7 +18,7 @@ if(changes === null) {
     printChanegs(changes.edited, changes.news, changes.deleted);
 }
 
-function getTable(file) {
+function getTable(file, filterForTables) {
     const fs = require('fs');
     const allFileContents = fs.readFileSync(file, 'utf-8');
     let table = {};
@@ -23,7 +27,13 @@ function getTable(file) {
         if(line.includes('INSERT INTO')) {
             let ignoreTables = ['db', 'engine_cost', 'global_grants', 'help_category', 'help_keyword', 'help_relation', 'help_topic', 'proxies_priv', 'replication_group_configuration_version', 'replication_group_member_actions', 'server_cost', 'tables_priv', 'user'];
             let tableName = line.split('INSERT INTO `').pop().split('`')[0];
-            if(!ignoreTables.includes(tableName)) {
+            if(filterForTables.length > 0) {
+                if(filterForTables.includes(tableName)) {
+                    let tableHeaders = headerToArray(line.split('` ').pop().split(' VALUES')[0]);
+                    let tableContent = valuesToArray(line.split('VALUES ').pop().split(';')[0]);
+                    table[tableName] = combineTable(tableHeaders, tableContent);
+                }
+            } else if(!ignoreTables.includes(tableName)) {
                 let tableHeaders = headerToArray(line.split('` ').pop().split(' VALUES')[0]);
                 let tableContent = valuesToArray(line.split('VALUES ').pop().split(';')[0]);
                 table[tableName] = combineTable(tableHeaders, tableContent);
