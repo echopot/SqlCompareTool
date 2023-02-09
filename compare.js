@@ -1,5 +1,11 @@
-const backupTabels = getTable('backup.sql');
-const currentTabels = getTable('current.sql');
+let backupTabels = {};
+let currentTabels = {};
+
+process.argv.forEach(function (val, idx, array) {
+    if(idx === 2) backupTabels = getTable(val.split(',')[0]);
+    if(idx === 3) currentTabels = getTable(val.split(',')[0]);
+});
+
 const changes = compareTables(backupTabels, currentTabels);
 
 if(changes === null) {

@@ -15,5 +15,5 @@ Create current sql dump file
 Run script for results.txt
 
 ```bash
-node compare.js
+node compare.js backup_file.sql, current_file.sql
 ```
