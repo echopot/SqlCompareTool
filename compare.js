@@ -10,7 +10,7 @@ process.argv.forEach(function (val, idx, array) {
     }
 });
 
-const changes = compareTables(getTable(backupFile, filterForTables), getTable(currentFile, filterForTables));
+const changes = compareTables(getTable(backupFile), getTable(currentFile), filterForTables);
 
 if(changes === null) {
     printResults('');
@@ -18,7 +18,7 @@ if(changes === null) {
     printChanegs(changes.edited, changes.news, changes.deleted);
 }
 
-function getTable(file, filterForTables) {
+function getTable(file) {
     const fs = require('fs');
     const allFileContents = fs.readFileSync(file, 'utf-8');
     let table = {};
@@ -27,13 +27,7 @@ function getTable(file, filterForTables) {
         if(line.includes('INSERT INTO')) {
             let ignoreTables = ['db', 'engine_cost', 'global_grants', 'help_category', 'help_keyword', 'help_relation', 'help_topic', 'proxies_priv', 'replication_group_configuration_version', 'replication_group_member_actions', 'server_cost', 'tables_priv', 'user'];
             let tableName = line.split('INSERT INTO `').pop().split('`')[0];
-            if(filterForTables.length > 0) {
-                if(filterForTables.includes(tableName)) {
-                    let tableHeaders = headerToArray(line.split('` ').pop().split(' VALUES')[0]);
-                    let tableContent = valuesToArray(line.split('VALUES ').pop().split(';')[0]);
-                    table[tableName] = combineTable(tableHeaders, tableContent);
-                }
-            } else if(!ignoreTables.includes(tableName)) {
+            if(!ignoreTables.includes(tableName)) {
                 let tableHeaders = headerToArray(line.split('` ').pop().split(' VALUES')[0]);
                 let tableContent = valuesToArray(line.split('VALUES ').pop().split(';')[0]);
                 table[tableName] = combineTable(tableHeaders, tableContent);
@@ -92,15 +86,16 @@ function combineTable(headers, content) {
     return table;
 }
 
-function compareTables(backup, current) {
+function compareTables(backup, current, filterForTables) {
     if(backup == current) {
         console.log('no diff');
         return null;
     }
 
     let edited = {};
-    let news = [];
-    let deleted = [];
+    let news = {};
+    let deleted = {};
+    let changedTables = [];
 
     for (const [key, value] of Object.entries(backup)) {
         if(value != current[key]) {
@@ -110,20 +105,36 @@ function compareTables(backup, current) {
             for(let i = 0; i < value.length; i++){
                 let result = current[key].find(e => e.id == value[i]['id']);
                 if(result === undefined) {
-                    deleted[key].push(value[i]);
+                    if(!changedTables.includes(key)) changedTables.push(key);
+                    if(filterForTables.length > 0) {
+                        if(filterForTables.includes(key)) deleted[key].push(value[i]);
+                    } else {
+                        deleted[key].push(value[i]);
+                    }
                 } else if(JSON.stringify(value[i]) !== JSON.stringify(result)) {
-                    edited[key].push(result);
+                    if(!changedTables.includes(key)) changedTables.push(key);
+                    if(filterForTables.length > 0) {
+                        if(filterForTables.includes(key)) edited[key].push(result);
+                    } else {
+                        edited[key].push(result);
+                    }
                 }
             }
             for(let i = 0; i < current[key].length; i++){
                 let result = value.find(e => e.id == current[key][i]['id']);
                 if(result === undefined) {
-                    news[key].push(current[key][i]);
+                    if(!changedTables.includes(key)) changedTables.push(key);
+                    if(filterForTables.length > 0) {
+                        if(filterForTables.includes(key)) news[key].push(current[key][i]);
+                    } else {
+                        news[key].push(current[key][i]);
+                    }
                 }
             }
         }
     }
-    return {edited: edited, news: news, deleted: deleted}
+    console.log('Changes have been made to the following tables: \n\t', changedTables)
+    return { edited: edited, news: news, deleted: deleted }
 }
 
 function printChanegs(edited, news, deleted) {
